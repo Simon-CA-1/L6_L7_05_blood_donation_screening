@@ -106,3 +106,28 @@ def test_centrifuge_stable_run():
 
 def test_centrifuge_single_drop_recovers():
     assert verify_storage_centrifuge([[2800, 3500, 3100]]) == "STABLE"
+
+# --- Branch coverage tests ---
+
+def test_low_hemoglobin_high_altitude_aborts_cohort():
+    cohorts = [
+        {
+            "clinic_registered": True,
+            "type": "high_altitude",
+            "donors": [
+                {"age": 25, "weight_kg": 65, "hb": 14.0},
+                {"age": 30, "weight_kg": 70, "hb": 12.0},
+                {"age": 40, "weight_kg": 75, "hb": 14.5}
+            ]
+        }
+    ]
+    result = process_donor_cohort(cohorts, 450)
+    # First donor accepted (450 ml), low-hb donor zeroes the cohort and breaks
+    # the loop, so the third donor is never processed.
+    assert result == {"collected_ml": 0, "status": "ZERO_YIELD"}
+
+def test_centrifuge_two_consecutive_drops_aborts():
+    assert verify_storage_centrifuge([[3500, 2800, 2900]]) == "ABORT_SPIN"
+
+def test_centrifuge_abort_in_second_run():
+    assert verify_storage_centrifuge([[3500, 3200], [3100, 2500, 2400]]) == "ABORT_SPIN"
